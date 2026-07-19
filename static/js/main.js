@@ -140,6 +140,93 @@ function toggleTest(dayId, idx) {
   testLists.get(dayId)?.toggle(`tb-${dayId}-${idx}`, `tbb-${dayId}-${idx}`);
 }
 
+function formatStatValue(value, { decimals = 0, suffix = '', fallback = '—' } = {}) {
+  if (value === null || value === undefined || value === '' || Number.isNaN(Number(value))) return fallback;
+  return `${Number(value).toLocaleString('es-ES', { maximumFractionDigits: decimals, minimumFractionDigits: decimals })}${suffix}`;
+}
+
+function getCompletedTrainingWeeks() {
+  return Object.keys(localStorage)
+    .filter(k => k.startsWith('tracker-w'))
+    .map(k => k.replace('tracker-w', ''))
+    .filter(k => /^\d+$/.test(k))
+    .sort((a, b) => Number(a) - Number(b));
+}
+
+function getCompletedTrainingCount() {
+  return getCompletedTrainingWeeks().reduce((total, week) => {
+    const saved = storage.get(`tracker-w${week}`) || {};
+    const completed = Object.keys(saved)
+      .filter(k => /^\d+$/.test(k))
+      .filter(k => saved[k] === 'done').length;
+    return total + completed;
+  }, 0);
+}
+
+function getCompletedGymTonnage() {
+  const totals = { lower: 0, upper: 0 };
+  getCompletedTrainingWeeks().forEach(week => {
+    const saved = storage.get(`tracker-w${week}`) || {};
+    Object.keys(saved)
+      .filter(k => /^\d+$/.test(k))
+      .forEach(idx => {
+        if (saved[idx] !== 'done') return;
+        const session = trackerSessions[Number(idx)];
+        if (!session || session.type !== 'gym') return;
+        const label = session.name.toLowerCase().includes('upper') ? 'upper' : 'lower';
+        for (let ei = 0; ei < session.exs.length; ei += 1) {
+          const sets = parseInt(saved[`gym-${idx}`]?.[`s${ei}`], 10) || 0;
+          const reps = parseInt(saved[`gym-${idx}`]?.[`r${ei}`], 10) || 0;
+          const kg = parseFloat(saved[`gym-${idx}`]?.[`k${ei}`]) || 0;
+          totals[label] += sets * reps * kg;
+        }
+      });
+  });
+  return totals;
+}
+
+function getDashboardMetrics() {
+  const bodySaved = storage.get('body-results') || {};
+  const watchSaved = storage.get('watch-data') || {};
+  const nutritionSaved = storage.get('nutrition-today') || [];
+  const caloriesConsumed = nutritionSaved.reduce((sum, meal) => sum + (parseFloat(meal.kcal) || 0), 0);
+
+  return {
+    bodyFat: parseFloat(bodySaved['b-grasa']),
+    weight: parseFloat(bodySaved['b-peso']),
+    caloriesBurned: parseFloat(watchSaved['calories-burned']),
+    caloriesConsumed,
+    vo2: parseFloat(watchSaved.vo2),
+    completedSessions: getCompletedTrainingCount(),
+    tonnage: getCompletedGymTonnage(),
+    currentWeek
+  };
+}
+
+function buildDashboard() {
+  const container = document.getElementById('dashboard-stats');
+  if (!container) return;
+  const metrics = getDashboardMetrics();
+  const cards = [
+    { label:'Grasa corporal', value: formatStatValue(metrics.bodyFat, { decimals: 1, suffix: '%' }), sub:'Último día medido' },
+    { label:'Peso', value: formatStatValue(metrics.weight, { decimals: 1, suffix: ' kg' }), sub:'Último registro' },
+    { label:'Calorías quemadas', value: formatStatValue(metrics.caloriesBurned, { decimals: 0, suffix: ' kcal' }), sub:'Desde smartwatch' },
+    { label:'Calorías consumidas', value: formatStatValue(metrics.caloriesConsumed, { decimals: 0, suffix: ' kcal' }), sub:'Desde nutrición' },
+    { label:'Lower tonnage', value: formatStatValue(metrics.tonnage.lower, { decimals: 0, suffix: ' kg' }), sub:'Entrenos completados' },
+    { label:'Upper tonnage', value: formatStatValue(metrics.tonnage.upper, { decimals: 0, suffix: ' kg' }), sub:'Entrenos completados' },
+    { label:'VO2 max', value: formatStatValue(metrics.vo2, { decimals: 1, suffix: ' ml/kg/min' }), sub:'Último registro' },
+    { label:'Semana actual', value: `Sem ${metrics.currentWeek}`, sub:'Del tracker semanal' }
+  ];
+
+  container.innerHTML = cards.map(card => `
+    <div class="stat-card">
+      <div class="stat-val">${card.value}</div>
+      <div class="stat-label">${card.label}</div>
+      <div class="stat-sublabel">${card.sub}</div>
+    </div>
+  `).join('');
+}
+
 async function buildTracker() {
   const trackerSessions = await trackerSessionsRepo.get();
   const c = document.getElementById('tracker-sessions');
@@ -178,6 +265,7 @@ async function buildTracker() {
       </div>`}
     </div>`;
   }).join('');
+  buildDashboard();
 }
 
 function setStatus(i, st) {
@@ -186,6 +274,7 @@ function setStatus(i, st) {
   saved[i] = saved[i] === st ? 'pending' : st;
   storage.set(key, saved);
   buildTracker();
+  buildDashboard();
 }
 
 function saveGym(si, ei, type, val) {
@@ -194,6 +283,7 @@ function saveGym(si, ei, type, val) {
   if (!saved[`gym-${si}`]) saved[`gym-${si}`] = {};
   saved[`gym-${si}`][`${type}${ei}`] = val;
   storage.set(key, saved);
+  buildDashboard();
 }
 
 function changeWeek(dir) {
@@ -201,6 +291,7 @@ function changeWeek(dir) {
   document.getElementById('week-label').textContent = `Semana ${currentWeek}`;
   document.getElementById('phase-badge').textContent = currentWeek < 1 ? 'Semana 0 · Tests' : `Semana ${currentWeek} · ${currentWeek <= 4 ? 'Fase 1' : currentWeek <= 8 ? 'Fase 2' : 'Fase 3'}`;
   buildTracker();
+  buildDashboard();
 }
 
 async function buildProgress() {
@@ -227,6 +318,7 @@ async function buildProgress() {
   `).join('');
 
   buildCharts();
+  buildDashboard();
 }
 
 function saveTestResult(key, val) {
@@ -234,12 +326,14 @@ function saveTestResult(key, val) {
   saved[key] = parseFloat(val) || null;
   storage.set('test-results', saved);
   buildCharts();
+  buildDashboard();
 }
 
 function saveBodyResult(key, val) {
   const saved = storage.get('body-results') || {};
   saved[key] = parseFloat(val) || null;
   storage.set('body-results', saved);
+  buildDashboard();
 }
 
 function buildCharts() {
@@ -288,6 +382,7 @@ function saveWatch(key, val) {
   saved[key] = parseFloat(val) || null;
   storage.set('watch-data', saved);
   buildWatchGrid();
+  buildDashboard();
 }
 
 function updateHrvAdvice(saved) {
@@ -394,6 +489,7 @@ function addMeal() {
   saved.push({ name, kcal:0, foods:[] });
   storage.set('nutrition-today', saved);
   buildNutritionLog();
+  buildDashboard();
 }
 
 async function buildSupplements() {
@@ -437,8 +533,8 @@ const pageMeta = {
 // eager build-at-startup behavior); `once: false` rebuilds every visit
 // (tracker/progreso/smartwatch/nutricion, since they re-read localStorage).
 class DashboardController extends PageController {
-  constructor() { super({ once: true }); }
-  async render() {} // static markup, nothing to build
+  constructor() { super({ once: false }); }
+  async render() { buildDashboard(); }
 }
 
 class RutinasController extends PageController {
@@ -570,6 +666,7 @@ document.addEventListener('change', e => {
 // ─── INIT ─────────────────────────────────────
 async function init() {
   updateDate();
+  await pageControllers.dashboard.activate();
   await pageControllers.rutinas.activate();
   await pageControllers.musculos.activate();
   await pageControllers.tests.activate();

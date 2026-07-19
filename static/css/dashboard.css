@@ -154,6 +154,9 @@ body {
 .stat-val { font-size:26px; font-weight:600; color: var(--foam); line-height:1; }
 .stat-unit { font-size:12px; color: var(--sun); margin-left:2px; }
 .stat-label { font-size:11px; color: var(--text3); margin-top:4px; }
+.stat-sublabel {
+  font-size:10px; color: var(--text2); margin-top:6px; line-height:1.4;
+}
 
 /* ─── RUTINAS TABS ─── */
 .rutina-tabs { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }

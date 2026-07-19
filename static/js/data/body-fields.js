@@ -6,5 +6,6 @@ export const bodyFields = [
   { key:'b-abdomen', label:'Abdomen', unit:'cm' },
   { key:'b-cadera', label:'Cadera', unit:'cm' },
   { key:'b-muslo', label:'Muslo', unit:'cm' },
-  { key:'b-peso', label:'Peso corporal', unit:'kg' }
+  { key:'b-peso', label:'Peso corporal', unit:'kg' },
+  { key:'b-grasa', label:'Grasa corporal', unit:'%' }
 ];
