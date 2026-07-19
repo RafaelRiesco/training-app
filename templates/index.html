@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rafael · Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ─── TOKENS ─── */
+  :root {
+    --ocean:   #0B3D52;
+    --deep:    #061C28;
+    --tide:    #1A6B8A;
+    --mist:    #7FB5C8;
+    --foam:    #E4F2F7;
+    --sand:    #E8D8BC;
+    --sun:     #E6A829;
+    --coral:   #D95B3A;
+    --moss:    #3D7A55;
+    --slate:   #8AA4AD;
+    --surface: #0D2535;
+    --card:    #102D3F;
+    --border:  rgba(127,181,200,0.15);
+    --border2: rgba(127,181,200,0.25);
+    --text:    #C8E4ED;
+    --text2:   #7FB5C8;
+    --text3:   #4A7A8A;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--deep);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app { display:flex; min-height:100vh; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: 220px; flex-shrink:0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction:column;
+    position: fixed; top:0; left:0; height:100vh;
+    overflow-y: auto; z-index:100;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--sun);
+    margin-bottom: 4px;
+  }
+  .logo-name {
+    font-size: 18px; font-weight:600; color: var(--foam);
+  }
+  .sidebar-nav { padding: 12px 0; flex:1; }
+  .nav-section-label {
+    font-size: 9px; font-weight:600; letter-spacing:3px;
+    text-transform: uppercase; color: var(--text3);
+    padding: 12px 20px 4px;
+  }
+  .nav-item {
+    display:flex; align-items:center; gap:10px;
+    padding: 9px 20px; cursor:pointer;
+    color: var(--text2); font-size:13px; font-weight:500;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { color: var(--foam); background: rgba(127,181,200,0.05); }
+  .nav-item.active {
+    color: var(--sun); border-left-color: var(--sun);
+    background: rgba(230,168,41,0.06);
+  }
+  .nav-icon { font-size:16px; width:18px; text-align:center; }
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text3);
+  }
+  .band-status {
+    display:flex; align-items:center; gap:8px;
+    padding: 8px 10px; background: var(--card);
+    border-radius: 8px; border: 1px solid var(--border);
+  }
+  .band-dot { width:6px; height:6px; border-radius:50%; background: var(--moss); flex-shrink:0; }
+  .band-text { font-size:11px; color: var(--text2); }
+
+  /* ─── MAIN ─── */
+  .main {
+    margin-left: 220px; flex:1;
+    min-height: 100vh;
+  }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+    position: sticky; top:0; z-index:50;
+  }
+  .page-title { font-size:17px; font-weight:600; color: var(--foam); }
+  .page-sub { font-size:12px; color: var(--text2); margin-top:1px; }
+  .topbar-right { display:flex; gap:12px; align-items:center; }
+  .phase-badge {
+    font-family: 'Space Mono', monospace;
+    font-size:10px; padding: 4px 10px; border-radius:20px;
+    background: rgba(230,168,41,0.1); color: var(--sun);
+    border: 1px solid rgba(230,168,41,0.2);
+  }
+  .date-display {
+    font-family: 'Space Mono', monospace;
+    font-size:11px; color: var(--text3);
+  }
+
+  /* ─── PAGES ─── */
+  .page { display:none; padding: 28px 32px; }
+  .page.active { display:block; }
+
+  /* ─── SECTION HEADER ─── */
+  .section-header { margin-bottom: 24px; }
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing:3px; text-transform:uppercase;
+    color: var(--sun); margin-bottom: 6px;
+  }
+  .section-title { font-size:22px; font-weight:600; color: var(--foam); margin-bottom: 6px; }
+  .section-desc { font-size:13px; color: var(--text2); line-height:1.65; max-width:640px; }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .card-label {
+    font-family: 'Space Mono', monospace;
+    font-size:9px; letter-spacing:3px; text-transform:uppercase;
+    color: var(--text3); margin-bottom:6px;
+  }
+  .card-title { font-size:15px; font-weight:600; color: var(--foam); margin-bottom:6px; }
+  .card-text { font-size:13px; color: var(--text2); line-height:1.6; }
+
+  /* ─── GRID LAYOUTS ─── */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+
+  /* ─── STATS ROW ─── */
+  .stats-row { display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius:10px; padding:16px 20px; flex:1; min-width:120px;
+  }
+  .stat-val { font-size:26px; font-weight:600; color: var(--foam); line-height:1; }
+  .stat-unit { font-size:12px; color: var(--sun); margin-left:2px; }
+  .stat-label { font-size:11px; color: var(--text3); margin-top:4px; }
+
+  /* ─── RUTINAS TABS ─── */
+  .rutina-tabs { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+  .rtab {
+    font-family:'Space Mono',monospace; font-size:10px;
+    letter-spacing:1.5px; text-transform:uppercase;
+    padding:7px 14px; border-radius:20px; cursor:pointer;
+    border: 1px solid var(--border2); color: var(--text2);
+    background: transparent; transition:all 0.15s;
+  }
+  .rtab:hover { color: var(--foam); border-color: var(--mist); }
+  .rtab.active { background: var(--ocean); color: var(--foam); border-color: var(--tide); }
+
+  .rutina-panel { display:none; }
+  .rutina-panel.active { display:block; }
+
+  /* ─── PHASE BLOCK ─── */
+  .phase-block {
+    background: var(--card); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden; margin-bottom:12px;
+  }
+  .phase-head {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 16px; border-bottom:1px solid var(--border);
+    background: rgba(127,181,200,0.04);
+  }
+  .phase-name {
+    font-family:'Space Mono',monospace; font-size:9px;
+    letter-spacing:2px; text-transform:uppercase; color: var(--text3); flex:1;
+  }
+  .phase-time { font-size:11px; color: var(--text3); }
+
+  /* ─── EXERCISE ROW ─── */
+  .ex-row {
+    display:grid; grid-template-columns:24px 1fr auto auto;
+    gap:12px; align-items:center;
+    padding:10px 16px; border-bottom:1px solid var(--border);
+    cursor:pointer; transition:background 0.12s;
+  }
+  .ex-row:last-child { border-bottom:none; }
+  .ex-row:hover { background: rgba(127,181,200,0.04); }
+  .ex-idx { font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); text-align:center; }
+  .ex-name { font-size:13px; font-weight:500; color:var(--foam); }
+  .ex-spec { font-size:11px; color:var(--text2); margin-top:1px; }
+  .ex-badge {
+    font-size:10px; padding:2px 7px; border-radius:10px;
+    border:1px solid var(--border); color:var(--text2);
+    background:var(--surface); white-space:nowrap;
+  }
+  .ex-badge.surf { background:rgba(26,107,138,0.2); color:var(--mist); border-color:var(--tide); }
+  .ex-chev { font-size:11px; color:var(--text3); transition:transform 0.15s; }
+  .ex-row.open .ex-chev { transform:rotate(180deg); }
+
+  .ex-detail {
+    display:none; padding:12px 16px 14px 52px;
+    border-bottom:1px solid var(--border);
+    background: rgba(0,0,0,0.15);
+  }
+  .ex-detail.visible { display:block; }
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .detail-section { }
+  .dl { font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--text3); margin-bottom:5px; }
+  .dt { font-size:12px; color:var(--text2); line-height:1.6; }
+  .muscle-tags { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+  .muscle-tag {
+    font-size:11px; padding:2px 7px; border-radius:8px;
+    background:rgba(61,122,85,0.2); color:#7FC99A;
+    border:1px solid rgba(61,122,85,0.3);
+  }
+  .surf-box {
+    background:rgba(26,107,138,0.12); border:1px solid rgba(26,107,138,0.25);
+    border-radius:8px; padding:8px 10px; margin-top:8px;
+    font-size:12px; color:var(--mist); line-height:1.5;
+  }
+
+  /* ─── MUSCLE CARDS ─── */
+  .muscle-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden; cursor:pointer;
+    margin-bottom:10px; transition:border-color 0.15s;
+  }
+  .muscle-card:hover { border-color:var(--border2); }
+  .muscle-card.open { border-color:var(--mist); }
+  .mc-header { display:flex; align-items:center; gap:12px; padding:13px 16px; }
+  .mc-color { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .mc-meta { flex:1; }
+  .mc-name { font-size:14px; font-weight:500; color:var(--foam); margin-bottom:2px; }
+  .mc-sub { font-size:11px; color:var(--text2); }
+  .mc-body {
+    display:none; border-top:1px solid var(--border);
+    padding:14px 16px; background:rgba(0,0,0,0.1);
+  }
+  .mc-body p { font-size:13px; color:var(--text2); line-height:1.65; }
+  .ev-box {
+    background:rgba(127,181,200,0.06); border-left:2px solid var(--tide);
+    padding:8px 12px; margin-top:10px;
+    font-size:12px; color:var(--text2); line-height:1.55;
+  }
+  .ev-src { font-size:10px; color:var(--text3); margin-bottom:3px; }
+
+  /* ─── TESTS ─── */
+  .test-block {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden; cursor:pointer;
+    margin-bottom:10px; transition:border-color 0.15s;
+  }
+  .test-block:hover { border-color:var(--border2); }
+  .test-block.open { border-color:var(--sun); }
+  .tb-header { display:flex; align-items:center; gap:12px; padding:13px 16px; }
+  .tb-num {
+    width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:600; font-family:'Space Mono',monospace;
+    background:var(--surface); border:1px solid var(--border); color:var(--foam);
+    flex-shrink:0;
+  }
+  .tb-meta { flex:1; }
+  .tb-name { font-size:14px; font-weight:500; color:var(--foam); margin-bottom:2px; }
+  .tb-sub { font-size:11px; color:var(--text2); }
+  .tb-badge {
+    font-size:10px; padding:2px 8px; border-radius:10px;
+    border:1px solid var(--border); color:var(--text2); background:var(--surface); white-space:nowrap;
+  }
+  .tb-chev { font-size:11px; color:var(--text3); transition:transform 0.15s; }
+  .test-block.open .tb-chev { transform:rotate(180deg); }
+  .tb-body {
+    display:none; border-top:1px solid var(--border); padding:16px;
+    background:rgba(0,0,0,0.1);
+  }
+
+  /* ─── SERIES TABLE ─── */
+  .series-tbl { width:100%; border-collapse:collapse; margin:8px 0; }
+  .series-tbl th {
+    font-size:9px; font-weight:600; letter-spacing:2px; text-transform:uppercase;
+    color:var(--text3); text-align:left; padding:5px 8px;
+    border-bottom:1px solid var(--border);
+  }
+  .series-tbl td {
+    font-size:12px; color:var(--text); padding:7px 8px;
+    border-bottom:1px solid var(--border);
+  }
+  .series-tbl tr:last-child td { border-bottom:none; }
+  .series-tbl td:first-child { color:var(--text2); }
+  .series-tbl tr.target td { color:var(--sun); font-weight:500; }
+
+  /* ─── TRACKER ─── */
+  .tracker-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:20px;
+  }
+  .week-nav { display:flex; align-items:center; gap:12px; }
+  .week-btn {
+    width:32px; height:32px; border-radius:50%;
+    background:var(--card); border:1px solid var(--border);
+    color:var(--text2); cursor:pointer; font-size:14px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.15s;
+  }
+  .week-btn:hover { border-color:var(--mist); color:var(--foam); }
+  .week-label { font-family:'Space Mono',monospace; font-size:12px; color:var(--foam); }
+
+  .session-grid { display:flex; flex-direction:column; gap:10px; }
+  .session-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden;
+  }
+  .session-head {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 16px; border-bottom:1px solid var(--border);
+  }
+  .session-day {
+    font-family:'Space Mono',monospace; font-size:10px;
+    letter-spacing:2px; text-transform:uppercase; color:var(--text3); min-width:60px;
+  }
+  .session-name { font-size:13px; font-weight:500; color:var(--foam); flex:1; }
+  .session-status { margin-left:auto; }
+  .status-btn {
+    font-size:11px; padding:4px 10px; border-radius:20px; cursor:pointer;
+    border:1px solid var(--border); color:var(--text2); background:transparent;
+    transition:all 0.15s;
+  }
+  .status-btn:hover { border-color:var(--moss); color:#7FC99A; }
+  .status-btn.done { background:rgba(61,122,85,0.2); color:#7FC99A; border-color:rgba(61,122,85,0.4); }
+  .status-btn.skip { background:rgba(217,91,58,0.15); color:var(--coral); border-color:rgba(217,91,58,0.3); }
+
+  .session-exs { padding:8px 16px 12px; }
+  .session-ex-row {
+    display:grid; grid-template-columns:1fr 80px 80px 80px;
+    gap:8px; align-items:center;
+    padding:6px 0; border-bottom:1px solid var(--border);
+  }
+  .session-ex-row:last-child { border-bottom:none; }
+  .sex-name { font-size:12px; color:var(--text2); }
+  .sex-input {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:6px; color:var(--foam); font-size:12px;
+    font-family:'Space Mono',monospace; text-align:center;
+    padding:4px 6px; width:100%;
+    transition:border-color 0.15s;
+  }
+  .sex-input:focus { outline:none; border-color:var(--tide); }
+  .sex-label { font-size:9px; color:var(--text3); text-align:center; margin-bottom:2px; }
+
+  /* ─── PROGRESS CHARTS ─── */
+  .progress-section { margin-top:24px; }
+  .chart-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:20px; margin-bottom:16px;
+  }
+  .chart-title { font-size:14px; font-weight:500; color:var(--foam); margin-bottom:4px; }
+  .chart-sub { font-size:11px; color:var(--text3); margin-bottom:16px; }
+  .bar-chart { display:flex; align-items:flex-end; gap:8px; height:80px; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .bar {
+    width:100%; border-radius:4px 4px 0 0; background:var(--tide);
+    transition:height 0.3s; min-height:4px; position:relative;
+  }
+  .bar.highlight { background:var(--sun); }
+  .bar-val { font-family:'Space Mono',monospace; font-size:9px; color:var(--text2); }
+  .bar-label { font-size:9px; color:var(--text3); }
+
+  .test-results-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+  .test-result-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:14px;
+  }
+  .tr-label { font-size:10px; color:var(--text3); margin-bottom:4px; }
+  .tr-val { font-size:22px; font-weight:600; color:var(--foam); }
+  .tr-unit { font-size:12px; color:var(--text3); margin-left:2px; }
+  .tr-input {
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
+    color:var(--foam); font-size:22px; font-weight:600; font-family:'Space Grotesk',sans-serif;
+    padding:2px 0; margin-top:2px;
+  }
+  .tr-input:focus { outline:none; border-bottom-color:var(--sun); }
+  .tr-date { font-size:10px; color:var(--text3); margin-top:4px; }
+  .tr-change { font-size:11px; margin-top:4px; }
+  .tr-change.up { color:#7FC99A; }
+  .tr-change.down { color:var(--coral); }
+
+  /* ─── NUTRICIÓN ─── */
+  .macro-ring-row { display:flex; gap:20px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+  .macro-ring { text-align:center; }
+  .ring-svg { width:80px; height:80px; }
+  .ring-bg { fill:none; stroke:var(--surface); stroke-width:8; }
+  .ring-fill { fill:none; stroke-width:8; stroke-linecap:round; transition:stroke-dasharray 0.5s; }
+  .ring-label { font-size:10px; color:var(--text3); margin-top:4px; }
+  .ring-val { font-size:16px; font-weight:600; color:var(--foam); }
+
+  .nutrition-log { display:flex; flex-direction:column; gap:8px; }
+  .meal-card {
+    background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  }
+  .meal-head {
+    display:flex; align-items:center; gap:10px; padding:10px 14px;
+    border-bottom:1px solid var(--border); cursor:pointer;
+  }
+  .meal-name { font-size:13px; font-weight:500; color:var(--foam); flex:1; }
+  .meal-kcal { font-family:'Space Mono',monospace; font-size:12px; color:var(--sun); }
+  .meal-body { display:none; padding:10px 14px; }
+  .meal-body.open { display:block; }
+  .food-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:5px 0; border-bottom:1px solid var(--border); font-size:12px;
+  }
+  .food-row:last-child { border-bottom:none; }
+  .food-name { color:var(--text2); }
+  .food-macros { display:flex; gap:10px; }
+  .food-macro { font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); }
+
+  .add-food-btn {
+    display:flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:20px; cursor:pointer; margin-top:8px;
+    border:1px dashed var(--border2); color:var(--text2);
+    background:transparent; font-size:12px; width:fit-content;
+    transition:all 0.15s;
+  }
+  .add-food-btn:hover { border-color:var(--sun); color:var(--sun); }
+
+  .supplement-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:16px; }
+  .supp-card {
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:14px; display:flex; flex-direction:column; gap:6px;
+  }
+  .supp-name { font-size:13px; font-weight:500; color:var(--foam); }
+  .supp-dose { font-size:11px; color:var(--text3); }
+  .supp-time { font-size:11px; color:var(--mist); }
+  .supp-check {
+    display:flex; align-items:center; gap:6px; margin-top:4px;
+    cursor:pointer; font-size:12px; color:var(--text2);
+  }
+  .check-box {
+    width:16px; height:16px; border-radius:4px;
+    border:1px solid var(--border); background:var(--surface);
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; transition:all 0.15s;
+  }
+  .check-box.checked { background:var(--moss); border-color:var(--moss); }
+
+  /* ─── SMARTWATCH ─── */
+  .watch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+  .watch-metric {
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:16px; display:flex; flex-direction:column; gap:4px;
+  }
+  .wm-icon { font-size:20px; margin-bottom:4px; }
+  .wm-val { font-size:26px; font-weight:600; color:var(--foam); }
+  .wm-unit { font-size:11px; color:var(--text3); }
+  .wm-label { font-size:11px; color:var(--text2); }
+  .wm-status { font-size:10px; margin-top:4px; }
+  .wm-status.good { color:#7FC99A; }
+  .wm-status.warn { color:var(--sun); }
+  .wm-status.bad { color:var(--coral); }
+  .wm-input {
+    background:transparent; border:none; border-bottom:1px solid var(--border);
+    color:var(--foam); font-size:26px; font-weight:600;
+    font-family:'Space Grotesk',sans-serif; width:100%; padding:0;
+  }
+  .wm-input:focus { outline:none; border-bottom-color:var(--sun); }
+
+  .hrv-note {
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:16px; margin-top:8px; font-size:13px; color:var(--text2); line-height:1.6;
+  }
+  .hrv-note strong { color:var(--foam); }
+
+  .sleep-bars { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .sleep-row { display:flex; align-items:center; gap:10px; }
+  .sleep-phase { font-size:11px; color:var(--text3); width:60px; text-align:right; }
+  .sleep-bar-bg {
+    flex:1; height:8px; background:var(--surface);
+    border-radius:4px; overflow:hidden;
+  }
+  .sleep-bar-fill { height:100%; border-radius:4px; transition:width 0.5s; }
+  .sleep-time { font-family:'Space Mono',monospace; font-size:10px; color:var(--text2); width:40px; }
+
+  /* ─── CHIPS ─── */
+  .chips { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
+  .chip {
+    font-size:11px; padding:2px 8px; border-radius:8px;
+    border:1px solid var(--border); color:var(--text2); background:var(--surface);
+  }
+  .chip.g { background:rgba(61,122,85,0.18); color:#7FC99A; border-color:rgba(61,122,85,0.3); }
+  .chip.r { background:rgba(217,91,58,0.15); color:var(--coral); border-color:rgba(217,91,58,0.3); }
+  .chip.b { background:rgba(26,107,138,0.2); color:var(--mist); border-color:var(--tide); }
+
+  .sec-lbl {
+    font-family:'Space Mono',monospace; font-size:9px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--text3); margin:12px 0 5px;
+  }
+  .sec-lbl:first-child { margin-top:0; }
+
+  .note-box {
+    background:rgba(127,181,200,0.06); border-left:2px solid var(--tide);
+    padding:8px 12px; font-size:12px; color:var(--text2); line-height:1.6; margin-top:4px;
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width:768px) {
+    .sidebar { width:100%; height:auto; position:relative; flex-direction:row; overflow-x:auto; }
+    .main { margin-left:0; }
+    .sidebar-logo { display:none; }
+    .sidebar-nav { display:flex; flex-direction:row; padding:8px; }
+    .nav-section-label { display:none; }
+    .nav-item { padding:8px 12px; border-left:none; border-bottom:2px solid transparent; white-space:nowrap; }
+    .nav-item.active { border-left:none; border-bottom-color:var(--sun); }
+    .app { flex-direction:column; }
+    .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; }
+    .page { padding:16px; }
+    .topbar { padding:12px 16px; }
+  }
+
+  .mbottom { margin-bottom:20px; }
+  .mt { margin-top:16px; }
+  hr.divider { border:none; border-top:1px solid var(--border); margin:20px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ─── SIDEBAR ─── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">Sistema de Entrenamiento</div>
+    <div class="logo-name">Rafael</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Entrenamiento</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">⌂</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('rutinas')">
+      <span class="nav-icon">💪</span> Rutinas
+    </div>
+    <div class="nav-item" onclick="showPage('musculos')">
+      <span class="nav-icon">🫀</span> Grupos musculares
+    </div>
+    <div class="nav-item" onclick="showPage('tests')">
+      <span class="nav-icon">📋</span> Tests semana 0
+    </div>
+    <div class="nav-section-label">Seguimiento</div>
+    <div class="nav-item" onclick="showPage('tracker')">
+      <span class="nav-icon">📊</span> Tracker semanal
+    </div>
+    <div class="nav-item" onclick="showPage('progreso')">
+      <span class="nav-icon">📈</span> Progreso
+    </div>
+    <div class="nav-item" onclick="showPage('smartwatch')">
+      <span class="nav-icon">⌚</span> Smartwatch
+    </div>
+    <div class="nav-section-label">Bienestar</div>
+    <div class="nav-item" onclick="showPage('nutricion')">
+      <span class="nav-icon">🥗</span> Nutrición
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="band-status">
+      <div class="band-dot"></div>
+      <div class="band-text">Huawei Band 11 Pro</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── MAIN ─── -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="topbar-title">Dashboard</div>
+      <div class="page-sub" id="topbar-sub">Vista general del programa</div>
+    </div>
+    <div class="topbar-right">
+      <div class="phase-badge" id="phase-badge">Semana 0 · Tests</div>
+      <div class="date-display" id="date-display"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: DASHBOARD
+  ══════════════════════════════════════════ -->
+  <div id="page-dashboard" class="page active">
+    <div class="section-header">
+      <div class="section-label">Bienvenido</div>
+      <div class="section-title">Cuerpo fuerte, mente clara, olas mejores.</div>
+      <div class="section-desc">Tu sistema de entrenamiento holístico orientado al surf. Tres módulos intercambiables, 15 ejercicios base, progresión por evidencia científica.</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val">0<span class="stat-unit">sem</span></div>
+        <div class="stat-label">Semana actual</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">5<span class="stat-unit">h</span></div>
+        <div class="stat-label">Entreno semanal</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">4</div>
+        <div class="stat-label">Rutinas del ciclo</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">15</div>
+        <div class="stat-label">Ejercicios base</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">3</div>
+        <div class="stat-label">Módulos de semana</div>
+      </div>
+    </div>
+
+    <div class="grid-2 mbottom">
+      <div class="card">
+        <div class="card-label">Esta semana</div>
+        <div class="card-title">Semana 0 — Tests de baseline</div>
+        <div class="card-text">Lunes: fuerza tren inferior · Miércoles: fuerza tren superior · Viernes: Cooper + medidas corporales. No hay entrenamiento estructurado esta semana — solo medición.</div>
+        <div class="chips mt">
+          <span class="chip b">Lun · Lower tests</span>
+          <span class="chip b">Mié · Upper tests</span>
+          <span class="chip b">Vie · Cooper + medidas</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Protocolo VO2 max</div>
+        <div class="card-title">15/15 — Fase 1 · Semanas 1–4</div>
+        <div class="card-text">Miércoles: 40 rondas de 15 seg trabajo (RPE 8) / 15 seg recuperación activa. Remadora o SkiErg. Calentamiento 8 min + vuelta calma 5 min.</div>
+        <div class="chips mt">
+          <span class="chip">Sem 1: 20 min / 40 rondas</span>
+          <span class="chip">Sem 2: 22 min / 44 rondas</span>
+          <span class="chip">Sem 3: 24 min / 48 rondas</span>
+          <span class="chip">Sem 4: 26 min / 52 rondas</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-label">Módulo A</div>
+        <div class="card-title">Semana ciudad completa</div>
+        <div class="card-text">Lun/Mié gym · Mar cardio · Jue yoga · Vie natación</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Módulo B</div>
+        <div class="card-title">Ciudad + Playa con surf</div>
+        <div class="card-text">Mar/Mié/Jue ciudad · Vie–Lun playa con olas</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Módulo C</div>
+        <div class="card-title">Ciudad + Playa sin surf</div>
+        <div class="card-text">Mar/Mié/Jue ciudad · Vie–Lun playa sin olas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: RUTINAS
+  ══════════════════════════════════════════ -->
+  <div id="page-rutinas" class="page">
+    <div class="section-header">
+      <div class="section-label">Programa</div>
+      <div class="section-title">Las 4 rutinas del ciclo</div>
+      <div class="section-desc">Semanas 1–2: Rutinas 1 + 2. Semanas 3–4: Rutinas 3 + 4. Semanas 5–6: vuelves a 1 + 2 con más peso.</div>
+    </div>
+
+    <div class="rutina-tabs">
+      <button class="rtab active" onclick="showRutina('r1',this)">Rutina 1 · Lower A</button>
+      <button class="rtab" onclick="showRutina('r2',this)">Rutina 2 · Upper A</button>
+      <button class="rtab" onclick="showRutina('r3',this)">Rutina 3 · Lower B</button>
+      <button class="rtab" onclick="showRutina('r4',this)">Rutina 4 · Upper B</button>
+    </div>
+
+    <!-- Rutina 1 -->
+    <div id="rut-r1" class="rutina-panel active">
+      <div class="card mbottom">
+        <div class="card-label">Semanas 1–2 · Lunes</div>
+        <div class="card-title">Lower A — Cadena posterior + potencia de cadera</div>
+        <div class="card-text">Peso muerto lidera la sesión cuando el SNC está fresco. Termina con KB swing para potencia explosiva. Énfasis en glúteos, isquiotibiales y core.</div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Calentamiento</span><span class="phase-time">10 min</span></div>
+        <div id="ex-r1-warm"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Bloque principal</span><span class="phase-time">35 min</span></div>
+        <div id="ex-r1-main"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Finisher</span><span class="phase-time">8 min</span></div>
+        <div id="ex-r1-fin"></div>
+      </div>
+    </div>
+
+    <!-- Rutina 2 -->
+    <div id="rut-r2" class="rutina-panel">
+      <div class="card mbottom">
+        <div class="card-label">Semanas 1–2 · Miércoles</div>
+        <div class="card-title">Upper A — Jalón dominante + empuje vertical</div>
+        <div class="card-text">Énfasis en espalda y jalón en ratio 2:1 sobre empuje. Las dominadas lideran. Face pull como corrector al final. Fundamental para el paddle.</div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Calentamiento</span><span class="phase-time">10 min</span></div>
+        <div id="ex-r2-warm"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Bloque principal</span><span class="phase-time">35 min</span></div>
+        <div id="ex-r2-main"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Finisher correctivo</span><span class="phase-time">8 min</span></div>
+        <div id="ex-r2-fin"></div>
+      </div>
+    </div>
+
+    <!-- Rutina 3 -->
+    <div id="rut-r3" class="rutina-panel">
+      <div class="card mbottom">
+        <div class="card-label">Semanas 3–4 · Lunes</div>
+        <div class="card-title">Lower B — Sentadilla + potencia unilateral + control motor</div>
+        <div class="card-text">Sentadilla lidera. Mayor énfasis en cuádriceps y fuerza unilateral. Turkish get-up como trabajo de integración total y control motor.</div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Calentamiento</span><span class="phase-time">10 min</span></div>
+        <div id="ex-r3-warm"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Bloque principal</span><span class="phase-time">35 min</span></div>
+        <div id="ex-r3-main"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Finisher</span><span class="phase-time">8 min</span></div>
+        <div id="ex-r3-fin"></div>
+      </div>
+    </div>
+
+    <!-- Rutina 4 -->
+    <div id="rut-r4" class="rutina-panel">
+      <div class="card mbottom">
+        <div class="card-label">Semanas 3–4 · Miércoles</div>
+        <div class="card-title">Upper B — Empuje horizontal + jalón vertical + integración</div>
+        <div class="card-text">Press de banca o mancuernas lidera. Mayor volumen de pecho y tríceps. Hollow rock y push-ups cierran con integración de cuerpo completo.</div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Calentamiento</span><span class="phase-time">10 min</span></div>
+        <div id="ex-r4-warm"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Bloque principal</span><span class="phase-time">35 min</span></div>
+        <div id="ex-r4-main"></div>
+      </div>
+      <div class="phase-block">
+        <div class="phase-head"><span class="phase-name">Finisher de integración</span><span class="phase-time">10 min</span></div>
+        <div id="ex-r4-fin"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: GRUPOS MUSCULARES
+  ══════════════════════════════════════════ -->
+  <div id="page-musculos" class="page">
+    <div class="section-header">
+      <div class="section-label">Anatomía del programa</div>
+      <div class="section-title">Grupos musculares y evidencia</div>
+      <div class="section-desc">Cada músculo del programa con su rol funcional, por qué importa para el surf y la evidencia científica detrás.</div>
+    </div>
+    <div class="rutina-tabs">
+      <button class="rtab active" onclick="showMusculos('lower',this)">Tren inferior</button>
+      <button class="rtab" onclick="showMusculos('upper',this)">Tren superior</button>
+      <button class="rtab" onclick="showMusculos('core',this)">Core y rotación</button>
+    </div>
+    <div id="mus-lower" class="rutina-panel active" id="mus-lower"></div>
+    <div id="mus-upper" class="rutina-panel"></div>
+    <div id="mus-core" class="rutina-panel"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: TESTS
+  ══════════════════════════════════════════ -->
+  <div id="page-tests" class="page">
+    <div class="section-header">
+      <div class="section-label">Semana 0</div>
+      <div class="section-title">Protocolo de tests baseline</div>
+      <div class="section-desc">3 días · 11 tests. Los resultados de esta semana determinan todos los pesos de progresión del programa.</div>
+    </div>
+    <div class="rutina-tabs">
+      <button class="rtab active" onclick="showTests('lun',this)">Lunes · Lower</button>
+      <button class="rtab" onclick="showTests('mie',this)">Miércoles · Upper</button>
+      <button class="rtab" onclick="showTests('vie',this)">Viernes · Cardio + Cuerpo</button>
+    </div>
+    <div id="tests-lun" class="rutina-panel active"></div>
+    <div id="tests-mie" class="rutina-panel"></div>
+    <div id="tests-vie" class="rutina-panel"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: TRACKER
+  ══════════════════════════════════════════ -->
+  <div id="page-tracker" class="page">
+    <div class="tracker-header">
+      <div>
+        <div class="section-label">Registro de entrenamiento</div>
+        <div class="section-title" style="font-size:20px">Tracker semanal</div>
+      </div>
+      <div class="week-nav">
+        <button class="week-btn" onclick="changeWeek(-1)">‹</button>
+        <div class="week-label" id="week-label">Semana 0</div>
+        <button class="week-btn" onclick="changeWeek(1)">›</button>
+      </div>
+    </div>
+    <div class="session-grid" id="tracker-sessions"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: PROGRESO
+  ══════════════════════════════════════════ -->
+  <div id="page-progreso" class="page">
+    <div class="section-header">
+      <div class="section-label">Evolución</div>
+      <div class="section-title">Progreso y resultados</div>
+      <div class="section-desc">Registra tus resultados de tests cada 6 semanas. Los datos se guardan en tu navegador.</div>
+    </div>
+
+    <div class="card mbottom">
+      <div class="card-label">Tests de fuerza — Ingresa tus resultados</div>
+      <div class="card-title" style="margin-bottom:14px">Resultados semana 0</div>
+      <div class="test-results-grid" id="test-results-grid"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Peso muerto — progresión</div>
+        <div class="chart-sub">5RM en kg por evaluación</div>
+        <div class="bar-chart" id="chart-deadlift"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Dominadas — progresión</div>
+        <div class="chart-sub">Reps máximas por evaluación</div>
+        <div class="bar-chart" id="chart-pullups"></div>
+      </div>
+    </div>
+
+    <div class="chart-card mt">
+      <div class="chart-title">VO2 max estimado — Cooper remadora</div>
+      <div class="chart-sub">Distancia en metros / 12 minutos</div>
+      <div class="bar-chart" id="chart-cooper"></div>
+    </div>
+
+    <div class="card mt">
+      <div class="card-label">Medidas corporales</div>
+      <div class="card-title" style="margin-bottom:14px">7 puntos — actualizar cada 4 semanas</div>
+      <div class="test-results-grid" id="body-results-grid"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: SMARTWATCH
+  ══════════════════════════════════════════ -->
+  <div id="page-smartwatch" class="page">
+    <div class="section-header">
+      <div class="section-label">Huawei Band 11 Pro</div>
+      <div class="section-title">Datos del smartwatch</div>
+      <div class="section-desc">Ingresa manualmente los datos de tu Band 11 Pro cada lunes. Con el tiempo, estos datos guiarán los ajustes del programa.</div>
+    </div>
+
+    <div class="watch-grid" id="watch-grid"></div>
+
+    <div class="card mbottom">
+      <div class="card-label">Sueño de anoche</div>
+      <div class="card-title" style="margin-bottom:12px">Fases de sueño</div>
+      <div class="sleep-bars" id="sleep-bars"></div>
+    </div>
+
+    <div class="hrv-note" id="hrv-advice">
+      Ingresa tu HRV y Body Battery arriba para recibir recomendación de carga del día.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PAGE: NUTRICIÓN
+  ══════════════════════════════════════════ -->
+  <div id="page-nutricion" class="page">
+    <div class="section-header">
+      <div class="section-label">Nutrición</div>
+      <div class="section-title">Combustible para el programa</div>
+      <div class="section-desc">Registro diario de macros y suplementos. Alineado con el protocolo de entrenamiento y los días de surf.</div>
+    </div>
+
+    <div class="grid-2 mbottom">
+      <div class="card">
+        <div class="card-label">Macros objetivo diario</div>
+        <div class="card-title" style="margin-bottom:12px">Días de entrenamiento</div>
+        <div class="macro-ring-row" id="macro-rings"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Guía por tipo de día</div>
+        <div class="card-title" style="margin-bottom:10px">Ajuste calórico</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--text2)">Día de gym (fuerza)</span><span style="color:var(--foam);font-family:'Space Mono',monospace">+200–300 kcal</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--text2)">Día de natación / VO2</span><span style="color:var(--foam);font-family:'Space Mono',monospace">+100–150 kcal</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--text2)">Día de surf (sesión larga)</span><span style="color:var(--foam);font-family:'Space Mono',monospace">+300–400 kcal</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:12px;"><span style="color:var(--text2)">Día de descanso</span><span style="color:var(--foam);font-family:'Space Mono',monospace">Base</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mbottom">
+      <div class="card-label">Registro del día</div>
+      <div class="card-title" style="margin-bottom:12px">Comidas de hoy</div>
+      <div class="nutrition-log" id="nutrition-log"></div>
+      <button class="add-food-btn mt" onclick="addMeal()">+ Agregar comida</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Suplementos Mycosalud</div>
+      <div class="card-title" style="margin-bottom:12px">Protocolo diario</div>
+      <div class="supplement-grid" id="supplement-grid"></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────
+let currentWeek = 0;
+const storage = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)) } catch(e) { return null } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch(e) {} }
+};
+
+// ─── EXERCISE DATA ────────────────────────────
+const exercises = {
+  r1: {
+    warm: [
+      { name:'Salto a la comba', spec:'5 min continuo', muscles:['Gemelos','Sistema nervioso','Coordinación'], surf:'Activa el sistema nervioso y prepara tobillo para la carga.', tip:'Cadencia cómoda — no es cardio intenso, es activación.', badge:'' },
+      { name:'Dead bug', spec:'2×8/lado — muy lento', muscles:['Transverso abdominal','Multífidos','Psoas'], surf:'Activa el core profundo antes del peso muerto pesado.', tip:'Espalda pegada al suelo. 3–4 seg por rep.', badge:'' },
+      { name:'Hip flexor lunge stretch', spec:'60 seg/lado', muscles:['Psoas','Ilíaco','Recto femoral'], surf:'Abre los flexores de cadera para el patrón de bisagra del peso muerto.', tip:'Torso erecto, cadera hacia adelante — no el torso.', badge:'' }
+    ],
+    main: [
+      { name:'Peso muerto convencional', spec:'4×5 — pesado · Pausa 3 min', muscles:['Glúteos','Isquiotibiales','Erectores','Trapecio','Core'], surf:'Bisagra de cadera = patrón del pop-up. Glúteos fuertes estabilizan el stance.', tip:'Barra sobre el mediopié. Empuja el suelo, no jales la barra.', badge:'surf' },
+      { name:'Hip thrust con barra', spec:'3×10 · Pausa 90 seg', muscles:['Glúteo mayor','Isquiotibiales','Core'], surf:'Extensión de cadera explosiva — el motor del pop-up y del bottom turn.', tip:'Pausa 2 seg arriba con glúteos apretados. No arquees la lumbar.', badge:'surf' },
+      { name:'Zancada búlgara', spec:'3×8/lado — mancuernas · Pausa 90 seg', muscles:['Cuádriceps','Glúteos','Isquiotibiales','Estabilizadores de tobillo'], surf:'Simula el stance del surfista mejor que cualquier bilateral.', tip:'Baja lento (3 seg), sube con potencia. Pie trasero en banco.', badge:'surf' },
+      { name:'Kettlebell swing', spec:'4×15 — explosivo · Pausa 60 seg', muscles:['Glúteos','Isquiotibiales','Core','Dorsales'], surf:'Potencia explosiva de cadena posterior. Misma demanda que el pop-up.', tip:'Snap de cadera — no es una sentadilla. Los brazos no jalan.', badge:'surf' }
+    ],
+    fin: [
+      { name:'Plancha lateral', spec:'3×30 seg/lado', muscles:['Oblicuos','Cuadrado lumbar','Glúteo medio'], surf:'Antiflexión lateral — estabilidad cuando la ola empuja de costado.', tip:'Cadera arriba, cuerpo en línea recta. No dejes caer la cadera.', badge:'' }
+    ]
+  },
+  r2: {
+    warm: [
+      { name:'Salto a la comba', spec:'5 min continuo', muscles:['Gemelos','Coordinación'], surf:'Activa antebrazos y hombros suavemente antes del jalón.', tip:'Cadencia cómoda.', badge:'' },
+      { name:'Hollow body hold', spec:'3×20 seg', muscles:['Core completo','Serratos','Psoas'], surf:'Tensión corporal total — el patrón del paddle activo.', tip:'Espalda lumbar pegada al suelo. Brazos y piernas extendidos.', badge:'' },
+      { name:'Shoulder CARs', spec:'5 reps/lado/dirección', muscles:['Manguito rotador','Serrato anterior','Deltoides'], surf:'Prepara el manguito rotador para el jalón — previene pinzamiento.', tip:'Rota describiendo el círculo más grande posible. Lento.', badge:'surf' }
+    ],
+    main: [
+      { name:'Dominadas', spec:'4×5 — peso corporal · Pausa 3 min', muscles:['Dorsal ancho','Bíceps','Romboides','Trapecio medio'], surf:'El ejercicio de jalón más transferible al paddle. Cada rep es una palada.', tip:'Inicia retrayendo escápulas. Baja completo y controlado.', badge:'surf' },
+      { name:'Remo con mancuerna', spec:'4×10/lado · Pausa 90 seg', muscles:['Dorsal ancho','Romboides','Bíceps'], surf:'Patrón unilateral del paddle stroke. Las asimetrías aquí se ven en el agua.', tip:'Tira el codo hacia la cadera. Pausa 1 seg arriba.', badge:'surf' },
+      { name:'Press overhead de pie', spec:'3×8 · Pausa 90 seg', muscles:['Deltoides','Tríceps','Core','Serrato anterior'], surf:'Fuerza de empuje vertical + estabilidad de core. Hombros fuertes para el pop-up.', tip:'Siempre de pie. No arquees la lumbar al empujar arriba.', badge:'' },
+      { name:'Push-up archer', spec:'3×6/lado · Pausa 60 seg', muscles:['Pectorales','Tríceps','Serrato anterior','Core'], surf:'Empuje asimétrico — directamente relevante para el pop-up en condiciones reales.', tip:'Un brazo extendido lateral mientras el otro hace la flexión. Control total.', badge:'' }
+    ],
+    fin: [
+      { name:'Face pull con banda', spec:'3×20 — ligero y lento', muscles:['Manguito rotador','Deltoides posterior','Romboides'], surf:'Antídoto del paddle: contrarresta el hombro anterior dominante que genera el surfing.', tip:'Codos arriba al tirar. Pulgares hacia atrás al final. Movimiento lento.', badge:'surf' }
+    ]
+  },
+  r3: {
+    warm: [
+      { name:'Salto a la comba', spec:'5 min continuo', muscles:['Gemelos','SNC'], surf:'Activa el sistema nervioso antes del trabajo de piernas.', tip:'Cadencia cómoda.', badge:'' },
+      { name:'Hollow body hold', spec:'2×25 seg', muscles:['Core completo'], surf:'Estabilización de tronco para mantener postura en la ola.', tip:'Espalda lumbar pegada al suelo en todo momento.', badge:'' },
+      { name:'90/90 hip stretch', spec:'90 seg/lado', muscles:['Rotadores de cadera','Piriforme'], surf:'Abre la cadera para profundidad de sentadilla — y para el pop-up.', tip:'Siéntate tall. Para externo: pecho hacia pierna delantera.', badge:'surf' }
+    ],
+    main: [
+      { name:'Sentadilla goblet', spec:'4×6-8 · Pausa 3 min', muscles:['Cuádriceps','Glúteos','Aductores','Core'], surf:'Fuerza de cuádriceps y glúteos para el stance en olas potentes.', tip:'Profundidad completa. Rodillas hacia afuera. Mancuerna al pecho.', badge:'' },
+      { name:'Single leg RDL', spec:'3×8/lado — mancuerna contralateral · Pausa 90 seg', muscles:['Isquiotibiales','Glúteo medio','Estabilizadores de tobillo'], surf:'El ejercicio unilateral más surf-específico. Cada maniobra es en una sola pierna.', tip:'Cadera cuadrada. Un punto fijo en el suelo para el equilibrio.', badge:'surf' },
+      { name:'Turkish get-up', spec:'3×3/lado — peso moderado · Pausa 2 min', muscles:['Core completo','Glúteos','Hombros','Cuádriceps'], surf:'Control motor total en múltiples planos — lo que el surf demanda con cada ola.', tip:'No hay apuro. El TGU es control motor, no cardio. Baja el peso si pierdes posición.', badge:'surf' },
+      { name:'Kettlebell swing', spec:'5×10 — explosivo · Pausa 60 seg', muscles:['Glúteos','Isquiotibiales','Core'], surf:'Potencia de cadena posterior — el motor del pop-up.', tip:'Snap de cadera potente. Core activo en todo el recorrido.', badge:'' }
+    ],
+    fin: [
+      { name:'Plancha frontal + lateral', spec:'2×30 seg frontal + 2×20 seg/lado lateral', muscles:['Core completo','Oblicuos','Cuadrado lumbar'], surf:'Estabilización de core en todos los planos — lo que el surf demanda en cada ola.', tip:'Secuencia sin pausa entre variantes. Descanso 45 seg entre series completas.', badge:'' }
+    ]
+  },
+  r4: {
+    warm: [
+      { name:'Salto a la comba', spec:'5 min continuo', muscles:['Gemelos','Coordinación'], surf:'Activa antebrazos y timing antes del press pesado.', tip:'Cadencia cómoda.', badge:'' },
+      { name:'Push-up activación', spec:'2×10 — peso corporal', muscles:['Pectorales','Serrato anterior','Core'], surf:'Activa el serrato anterior y el core antes del press.', tip:'No es el ejercicio de la sesión — es calentamiento. Técnica impecable, lento.', badge:'' },
+      { name:'Thread the needle', spec:'10 reps/lado', muscles:['Rotadores torácicos','Romboides','Manguito rotador'], surf:'Movilidad torácica = más rotación disponible para las maniobras.', tip:'Desliza el brazo por el suelo. Cadera quieta — solo rota la columna torácica.', badge:'surf' }
+    ],
+    main: [
+      { name:'Press de banca / mancuernas', spec:'4×6-8 · Pausa 2 min', muscles:['Pectorales','Tríceps','Deltoides anterior','Serrato anterior'], surf:'Potencia de tren superior para el pop-up. Mancuernas añaden estabilización.', tip:'Codos a 45° del cuerpo. Controla la bajada 2–3 seg.', badge:'' },
+      { name:'Jalón al pecho', spec:'4×10 · Pausa 90 seg', muscles:['Dorsal ancho','Bíceps','Teres mayor'], surf:'Progresión directa hacia dominadas. Mismo patrón que el pull del paddle.', tip:'Ligera inclinación del torso. Tira a la clavícula. Retrae escápulas al iniciar.', badge:'surf' },
+      { name:'Remo con barra inclinado', spec:'3×8 — moderado-pesado · Pausa 90 seg', muscles:['Dorsal ancho','Romboides','Trapecio medio'], surf:'Mayor carga que el remo con mancuerna — construye base de fuerza de jalón.', tip:'Espalda paralela al suelo. Barra al ombligo. No uses inercia.', badge:'surf' },
+      { name:'Press overhead mancuernas', spec:'3×10 — ligero-moderado · Pausa 60 seg', muscles:['Deltoides','Tríceps','Core'], surf:'Estabilidad de hombro en plano vertical — clave para el paddling prolongado.', tip:'Esta sesión ya tiene mucho empuje — baja el peso y trabaja rango.', badge:'' }
+    ],
+    fin: [
+      { name:'Hollow rock', spec:'3×10', muscles:['Recto abdominal','Transverso','Serratos'], surf:'Patrón de tensión que conecta tren superior e inferior — base de toda la calistenia surf.', tip:'No pierdas la tensión abdominal en ningún punto del arco.', badge:'' },
+      { name:'Push-up hasta fallo técnico', spec:'2× fallo técnico', muscles:['Pectorales','Tríceps','Serrato anterior','Core'], surf:'Resistencia de tren superior para sesiones largas de paddle.', tip:'La última serie del día. Para cuando la técnica falla, no cuando duela.', badge:'' }
+    ]
+  }
+};
+
+function buildExRows(containerId, exs) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = exs.map((ex, i) => `
+    <div class="ex-row" id="row-${containerId}-${i}" onclick="toggleEx('${containerId}',${i})">
+      <span class="ex-idx">${i+1}</span>
+      <div>
+        <div class="ex-name">${ex.name}</div>
+        <div class="ex-spec">${ex.spec}</div>
+      </div>
+      ${ex.badge==='surf' ? '<span class="ex-badge surf">Surf</span>' : '<span class="ex-badge"></span>'}
+      <span class="ex-chev">▼</span>
+    </div>
+    <div class="ex-detail" id="det-${containerId}-${i}">
+      <div class="detail-grid">
+        <div class="detail-section">
+          <div class="dl">Músculos</div>
+          <div class="muscle-tags">${ex.muscles.map(m=>`<span class="muscle-tag">${m}</span>`).join('')}</div>
+          <div class="dl" style="margin-top:10px">Clave técnica</div>
+          <div class="dt">${ex.tip}</div>
+        </div>
+        <div class="detail-section">
+          <div class="dl">Transferencia al surf</div>
+          <div class="surf-box">🌊 ${ex.surf}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleEx(cid, i) {
+  const row = document.getElementById(`row-${cid}-${i}`);
+  const det = document.getElementById(`det-${cid}-${i}`);
+  row.classList.toggle('open');
+  det.classList.toggle('visible');
+}
+
+// ─── MUSCLES DATA ─────────────────────────────
+const musclesData = {
+  lower: [
+    { name:'Glúteo mayor', color:'#534AB7', role:'Motor primario — pop-up y bottom turn', why:'El músculo más grande y potente del cuerpo. Su extensión de cadera impulsa el pop-up, el bottom turn y la aceleración. Un glúteo débil fuerza compensaciones en la lumbar.', evidence:'Contreras et al. (2015) — JSCR: el hip thrust genera mayor activación del glúteo (119%) que la sentadilla (60%).' },
+    { name:'Isquiotibiales', color:'#0F6E56', role:'Estabilizadores de rodilla y motores de bisagra', why:'Trabajan junto al glúteo en la bisagra de cadera. Estabilizan la rodilla durante cambios de dirección. Los isquiotibiales débiles son la principal causa de lesiones de rodilla en surf.', evidence:'Schoenfeld (2010): el peso muerto activa isquiotibiales al 86% CMV, superior a cualquier máquina de isquios.' },
+    { name:'Cuádriceps', color:'#3B6D11', role:'Estabilizadores de rodilla y motor del stance', why:'Trabajan excéntricamente absorbiendo el impacto bajo los pies en cada maniobra. Su fuerza determina cuánto tiempo puedes mantener posición baja sin fatigarte.', evidence:'Speirs et al. (2016): la zancada búlgara genera mayor activación de cuádriceps por lado que la sentadilla bilateral.' },
+    { name:'Glúteo medio y rotadores', color:'#854F0B', role:'Estabilidad frontal de cadera', why:'Controla el movimiento lateral de la cadera en posición monopodal. Su debilidad genera colapso medial de rodilla durante maniobras — la causa más común del síndrome de banda IT en surfistas.', evidence:'Distefano et al. (2009): el single leg RDL activa el glúteo medio al 64% CMV — superior a sentadilla y estocada.' },
+    { name:'Erectores espinales', color:'#185FA5', role:'Estabilizadores axiales de columna', why:'Mantienen la columna neutra bajo carga. En surf trabajan permanentemente durante el paddling. Su debilidad genera el clásico dolor lumbar del surfista.', evidence:'McGill (2010): la estabilización isométrica bajo carga (peso muerto) es el protocolo más eficaz para prevenir dolor lumbar crónico.' }
+  ],
+  upper: [
+    { name:'Dorsal ancho', color:'#534AB7', role:'Motor primario del paddle', why:'El músculo más importante para el surfista. Es el motor principal del paddle stroke — cada palada es fundamentalmente una contracción del dorsal. Su resistencia determina cuánto tiempo puedes paddlear.', evidence:'Trevithick et al. (2018): las dominadas generan mayor activación del dorsal ancho que jalón al pecho, remo o cualquier otro ejercicio de jalón.' },
+    { name:'Romboides y trapecio medio', color:'#0F6E56', role:'Retractores escapulares — postura y salud', why:'El contrapeso del paddling. El paddle constante desarrolla el pectoral anterior creando desequilibrio que redondea los hombros. Sin estos músculos, el pinzamiento de hombro es inevitable.', evidence:'Cools et al. (2007): el desequilibrio escapular es el factor predictivo más consistente de lesiones de hombro en deportes de paddling.' },
+    { name:'Manguito rotador', color:'#854F0B', role:'Estabilizadores del hombro', why:'Sistema de 4 músculos que centran la cabeza humeral. Soportan miles de repeticiones de paddle por sesión. Su debilidad es la causa número uno de lesiones de hombro en surfistas.', evidence:'Reinold et al. (2004): los ejercicios de rotación externa (face pull) son los más efectivos para fortalecer el manguito y prevenir pinzamiento subacromial.' },
+    { name:'Pectorales', color:'#3B6D11', role:'Motor del empuje horizontal', why:'La fase de empuje del pop-up es un press en el suelo. Trabajan también estabilizando el hombro durante el paddling. Esenciales para la potencia del pop-up.', evidence:'Barnett et al. (1995): el press de mancuernas activa el serrato anterior más que el press de banca — más funcional para atletas.' },
+    { name:'Serrato anterior', color:'#185FA5', role:'Estabilizador escapular dinámico — el más ignorado', why:'Mantiene la escápula contra la caja torácica durante el paddling. Su debilidad genera la escápula alada que reduce la eficiencia del paddle. El push-up libre lo activa mejor que cualquier máquina.', evidence:'Lehman et al. (2004): el push-up plus activa el serrato anterior al 116% CMV — mayor que cualquier otro ejercicio de tren superior.' }
+  ],
+  core: [
+    { name:'Transverso abdominal y multífidos', color:'#534AB7', role:'Sistema de estabilización profunda de columna', why:'No generan movimiento — lo controlan. Crean la presión intraabdominal que protege la columna durante los levantamientos y el surf. Sin este sistema, la fuerza de piernas no se transfiere eficientemente.', evidence:'Hodges & Richardson (1997): el transverso se activa antes que cualquier otro músculo en movimientos de extremidades. Su disfunción predice dolor lumbar.' },
+    { name:'Oblicuos internos y externos', color:'#0F6E56', role:'Generadores y resistidores de rotación', why:'El core del surfista no solo genera rotación — principalmente la resiste. El cutback, el snap y el floater requieren rotación explosiva. El Pallof press y el woodchop entrenan ambas capacidades.', evidence:'Helms et al. (Muscle & Strength Pyramid): el trabajo de core en los tres planos mejora la transferencia de fuerza en levantamientos y reduce fatiga lumbar.' },
+    { name:'Cuadrado lumbar', color:'#854F0B', role:'Estabilizador lateral de columna', why:'El músculo lateral de la columna más importante y el menos entrenado. Trabaja en antiflexión lateral — exactamente cuando la ola empuja de lado. La plancha lateral es el ejercicio más directo para entrenarlo.', evidence:'McGill (2010): el entrenamiento de core en los tres planos reduce la incidencia de dolor lumbar en atletas un 42% comparado con trabajo exclusivo de flexión abdominal.' }
+  ]
+};
+
+function buildMusculos(groupId, muscles) {
+  const c = document.getElementById(`mus-${groupId}`);
+  if (!c) return;
+  c.innerHTML = muscles.map((m,i) => `
+    <div class="muscle-card" id="mc-${groupId}-${i}" onclick="toggleMc('${groupId}',${i})">
+      <div class="mc-header">
+        <div class="mc-color" style="background:${m.color}"></div>
+        <div class="mc-meta">
+          <div class="mc-name">${m.name}</div>
+          <div class="mc-sub">${m.role}</div>
+        </div>
+        <span style="font-size:11px;color:var(--text3)">▼</span>
+      </div>
+      <div class="mc-body" id="mcb-${groupId}-${i}">
+        <p>${m.why}</p>
+        <div class="ev-box"><div class="ev-src">Evidencia</div>${m.evidence}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleMc(gid, i) {
+  const card = document.getElementById(`mc-${gid}-${i}`);
+  const body = document.getElementById(`mcb-${gid}-${i}`);
+  card.classList.toggle('open');
+  body.style.display = card.classList.contains('open') ? 'block' : 'none';
+}
+
+// ─── TESTS DATA ───────────────────────────────
+const testsData = {
+  lun: [
+    {
+      num:'1', name:'Peso muerto convencional — 5RM', sub:'Barra olímpica · Zona de pesos libres · ~35 min',
+      badge:'Lunes', note:'Sin referencia previa → empieza el intento 5RM con 60 kg.',
+      series:[
+        ['Calentamiento','Barra sola — 20 kg','8','2 min'],
+        ['Aproximación 1','~40% estimado','5','2 min'],
+        ['Aproximación 2','~60% estimado','3','3 min'],
+        ['Aproximación 3','~75% estimado','2','3 min'],
+        ['Aproximación 4','~85% estimado','1','4 min'],
+        ['🎯 Intento 5RM','~95–100% estimado','5','—']
+      ],
+      cues:[{g:true,t:'Espalda neutra en todo momento'},{g:true,t:'Barra pegada al cuerpo'},{g:true,t:'Caderas y hombros suben juntos'},{g:false,t:'No redondear la espalda baja'},{g:false,t:'No subir caderas antes que hombros'}]
+    },
+    {
+      num:'2', name:'Sentadilla goblet — 5RM', sub:'Mancuerna o kettlebell · ~20 min',
+      badge:'Lunes', note:'90/90 hip stretch 60 seg/lado antes de empezar.',
+      series:[
+        ['Calentamiento','10 kg','10','90 seg'],
+        ['Aproximación 1','16–20 kg','6','2 min'],
+        ['Aproximación 2','24–28 kg','3','2 min'],
+        ['🎯 Intento 5RM','+4–6 kg más','5','—']
+      ],
+      cues:[{g:true,t:'Muslos paralelos o por debajo'},{g:true,t:'Talones en contacto con el suelo'},{g:true,t:'Rodillas traccionan hacia afuera'},{g:false,t:'No cuenta si es sentadilla parcial'}]
+    },
+    {
+      num:'3', name:'Hip thrust — 5RM', sub:'Barra + banco · ~20 min',
+      badge:'Lunes', note:'Sin referencia → intento 5RM con 70–80 kg. El hip thrust permite cargas mayores al peso muerto.',
+      series:[
+        ['Calentamiento','Peso corporal','15','60 seg'],
+        ['Aproximación 1','20–30 kg','10','90 seg'],
+        ['Aproximación 2','40–50 kg','6','2 min'],
+        ['Aproximación 3','60–70 kg','3','2 min'],
+        ['🎯 Intento 5RM','+10–15 kg más','5','—']
+      ],
+      cues:[{g:true,t:'Espalda apoyada a nivel de omóplatos'},{g:true,t:'Pausa 1 seg arriba con glúteos apretados'},{g:true,t:'Rodillas a 90° en la posición alta'},{g:false,t:'No arquear la lumbar para ganar altura'}]
+    },
+    {
+      num:'4', name:'Single leg RDL — referencia de control motor', sub:'Mancuerna contralateral · ~15 min · No es 5RM',
+      badge:'Lunes', note:'Medimos el peso con el que puedes hacer 8 reps limpias/lado con cadera cuadrada. No fuerza máxima.',
+      series:[
+        ['Calentamiento','Sin peso','8/lado','60 seg'],
+        ['Aproximación 1','6–8 kg','8/lado','90 seg'],
+        ['Aproximación 2','10–12 kg','8/lado','90 seg'],
+        ['🎯 Referencia','Máximo con técnica perfecta × 8','8/lado','—']
+      ],
+      cues:[{g:true,t:'Mancuerna en mano opuesta al pie de apoyo'},{g:true,t:'Cadera cuadrada durante todo el movimiento'},{g:true,t:'Punto fijo en el suelo para el equilibrio'},{g:false,t:'No rotar la cadera hacia afuera'}]
+    }
+  ],
+  mie: [
+    {
+      num:'1', name:'Dominadas — confirmación de baseline', sub:'Barra de dominadas · Agarre prono · Ya conocido: 10–11 reps',
+      badge:'Miércoles', note:'Tu baseline ya está establecido. Solo confirmar el número con técnica estricta.',
+      series:[
+        ['Calentamiento','Shoulder CARs + jalón ligero','—','3 min'],
+        ['🎯 Test máx','Peso corporal — técnica estricta','Máx','—']
+      ],
+      cues:[{g:true,t:'Extensión completa de codos abajo'},{g:true,t:'Mentón sobre la barra arriba'},{g:true,t:'Bajada controlada — sin caer'},{g:false,t:'Sin kipping ni impulso de piernas'}]
+    },
+    {
+      num:'2', name:'Press overhead de pie — 5RM', sub:'Barra + rack · Siempre de pie · ~25 min',
+      badge:'Miércoles', note:'Sin referencia → empieza el intento 5RM con 30–35 kg.',
+      series:[
+        ['Calentamiento','Barra sola — 20 kg','10','2 min'],
+        ['Aproximación 1','25–27 kg','5','2 min'],
+        ['Aproximación 2','30–32 kg','3','3 min'],
+        ['Aproximación 3','35–37 kg','2','3 min'],
+        ['🎯 Intento 5RM','+4–5 kg más','5','—']
+      ],
+      cues:[{g:true,t:'Siempre de pie — nunca sentado'},{g:true,t:'Core activo durante todo el movimiento'},{g:false,t:'No arquear la lumbar al empujar'},{g:false,t:'No usar impulso de piernas'}]
+    },
+    {
+      num:'3', name:'Remo con mancuerna — 8RM', sub:'Banco plano + mancuerna · ~15 min',
+      badge:'Miércoles', note:'Testeamos 8RM (no 5RM) porque así se trabaja en el programa — series de 10.',
+      series:[
+        ['Calentamiento','10–12 kg','12/lado','60 seg'],
+        ['Aproximación 1','16–18 kg','10/lado','90 seg'],
+        ['Aproximación 2','20–22 kg','8/lado','90 seg'],
+        ['🎯 Intento 8RM','+2–4 kg más','8/lado','—']
+      ],
+      cues:[{g:true,t:'Espalda paralela al suelo'},{g:true,t:'Tira el codo hacia la cadera'},{g:true,t:'Pausa 1 seg arriba en cada rep'},{g:false,t:'No rotar el tronco para ganar rango'}]
+    },
+    {
+      num:'4', name:'Push-ups — máximo de reps', sub:'Sin implementos · Suelo · ~10 min',
+      badge:'Miércoles', note:'5 min de pausa después del remo. Para cuando falla la técnica — no cuando duela.',
+      series:[
+        ['🎯 Test máx','Peso corporal — técnica estricta','Máx','—']
+      ],
+      cues:[{g:true,t:'Cuerpo recto de talones a nuca'},{g:true,t:'Pecho toca o roza el suelo'},{g:true,t:'Codos a 45° — no 90°'},{g:false,t:'No dejar caer la cadera'}]
+    }
+  ],
+  vie: [
+    {
+      num:'1', name:'Medidas corporales — 7 puntos', sub:'Cinta métrica · En ayunas antes del test · ~10 min',
+      badge:'Viernes en ayunas', note:'Misma hora siempre. Antes de desayunar. Después de ir al baño. Sin ropa que comprima.',
+      series:[
+        ['Punto 1','Cuello','Más estrecho bajo la nuez','—'],
+        ['Punto 2','Hombros','Más ancho con brazos relajados','—'],
+        ['Punto 3','Pecho','A la altura de los pezones','—'],
+        ['Punto 4','Cintura','2–3 cm sobre el ombligo, sin meter el abdomen','—'],
+        ['Punto 5','Abdomen','A la altura del ombligo, relajado','—'],
+        ['Punto 6','Cadera','Punto más ancho de glúteos','—'],
+        ['Punto 7','Muslo','10 cm arriba de la rótula, pierna dominante','—']
+      ],
+      cues:[{g:true,t:'Misma cinta métrica siempre'},{g:true,t:'Marca el punto exacto la primera vez'},{g:true,t:'Cintura ÷ cadera → meta menor a 0.90'},{g:true,t:'Cintura ÷ altura → meta menor a 0.50'}]
+    },
+    {
+      num:'2', name:'Test Cooper — remadora 12 minutos', sub:'Remadora Concept2 · Máxima distancia posible · ~25 min totales',
+      badge:'Viernes', note:'Configura la remadora en modo tiempo: 12:00 min. RPE 7 los primeros 4 min → RPE 9 los últimos 4 min.',
+      series:[
+        ['Calentamiento','5 min remo suave','—','—'],
+        ['🎯 Test','12 min — máxima distancia','—','—'],
+        ['Vuelta calma','5 min suave hasta FC bajo 120','—','—']
+      ],
+      cues:[{g:true,t:'Ritmo constante — no sprint inicial'},{g:true,t:'Anotar distancia total en metros al terminar'},{g:false,t:'No salir demasiado fuerte en el primer minuto'}]
+    },
+    {
+      num:'3', name:'Plancha frontal — tiempo máximo', sub:'Sin implementos · Suelo · Después del Cooper',
+      badge:'Viernes', note:'10 min de descanso después del Cooper. Posición en codos. Para cuando la cadera suba o baje.',
+      series:[
+        ['🎯 Test máx','Posición en codos','Máx segundos','—']
+      ],
+      cues:[{g:true,t:'Cuerpo en línea recta desde talones'},{g:true,t:'Para cuando la cadera sube o baja'},{g:false,t:'No elevar los glúteos para aguantar más'}]
+    }
+  ]
+};
+
+function buildTests(dayId, tests) {
+  const c = document.getElementById(`tests-${dayId}`);
+  if (!c) return;
+  c.innerHTML = tests.map((t, idx) => `
+    <div class="test-block" id="tb-${dayId}-${idx}">
+      <div class="tb-header" onclick="toggleTest('${dayId}',${idx})">
+        <div class="tb-num">${t.num}</div>
+        <div class="tb-meta">
+          <div class="tb-name">${t.name}</div>
+          <div class="tb-sub">${t.sub}</div>
+        </div>
+        <span class="tb-badge">${t.badge}</span>
+        <span class="tb-chev">▼</span>
+      </div>
+      <div class="tb-body" id="tbb-${dayId}-${idx}">
+        <div class="note-box" style="margin-bottom:10px">${t.note}</div>
+        <div class="sec-lbl">Series</div>
+        <table class="series-tbl">
+          <tr>${t.series[0].length===4?'<th>Serie</th><th>Peso / Zona</th><th>Reps</th><th>Pausa</th>':'<th>Punto</th><th>Zona</th><th>Dónde</th><th>—</th>'}</tr>
+          ${t.series.map(s=>`<tr class="${s[0].includes('🎯')?'target':''}"><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td></tr>`).join('')}
+        </table>
+        <div class="sec-lbl" style="margin-top:12px">Técnica</div>
+        <div class="chips">${t.cues.map(c=>`<span class="chip ${c.g?'g':'r'}">${c.g?'✓':'✗'} ${c.t}</span>`).join('')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleTest(dayId, idx) {
+  const block = document.getElementById(`tb-${dayId}-${idx}`);
+  const body = document.getElementById(`tbb-${dayId}-${idx}`);
+  block.classList.toggle('open');
+  body.style.display = block.classList.contains('open') ? 'block' : 'none';
+}
+
+// ─── TRACKER ─────────────────────────────────
+const trackerSessions = [
+  { day:'Lunes', name:'Gym — Lower A o B', type:'gym', exs:['Peso muerto','Hip thrust','Sentadilla goblet','KB swing','Plancha lateral'] },
+  { day:'Martes', name:'Natación', type:'swim', exs:['200m calentamiento','4×100m estilo libre','4×25m técnica','100m espalda'] },
+  { day:'Miércoles', name:'VO2 max — 15/15', type:'vo2', exs:['8 min calentamiento','40 rondas 15/15','5 min vuelta calma'] },
+  { day:'Jueves', name:'Gym — Upper A o B', type:'gym', exs:['Dominadas','Press overhead','Remo mancuerna','Face pull'] },
+  { day:'Viernes', name:'Natación', type:'swim', exs:['Sesión continua 30–40 min'] },
+  { day:'Sábado', name:'Yoga / Movilidad', type:'mobility', exs:['World\'s greatest stretch','90/90 hip','Rotación torácica','Shoulder CARs'] },
+  { day:'Domingo', name:'Descanso activo', type:'rest', exs:['Caminata suave','Movilidad 15 min opcional'] }
+];
+
+function buildTracker() {
+  const c = document.getElementById('tracker-sessions');
+  const key = `tracker-w${currentWeek}`;
+  const saved = storage.get(key) || {};
+
+  c.innerHTML = trackerSessions.map((s, i) => {
+    const state = saved[i] || 'pending';
+    const isGym = s.type === 'gym';
+    const gymData = isGym ? (saved[`gym-${i}`] || {}) : {};
+    return `
+    <div class="session-card">
+      <div class="session-head">
+        <span class="session-day">${s.day}</span>
+        <span class="session-name">${s.name}</span>
+        <div class="session-status">
+          <button class="status-btn ${state==='done'?'done':''}" onclick="setStatus(${i},'done')">${state==='done'?'✓ Hecho':'Marcar hecho'}</button>
+          <button class="status-btn ${state==='skip'?'skip':''}" style="margin-left:4px" onclick="setStatus(${i},'skip')">${state==='skip'?'— Skip':'Skip'}</button>
+        </div>
+      </div>
+      ${isGym ? `
+      <div class="session-exs">
+        <div class="session-ex-row" style="font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);padding-bottom:6px;">
+          <span>Ejercicio</span><span style="text-align:center">Series</span><span style="text-align:center">Reps</span><span style="text-align:center">Kg</span>
+        </div>
+        ${s.exs.map((ex, ei) => `
+        <div class="session-ex-row">
+          <span class="sex-name">${ex}</span>
+          <input class="sex-input" type="number" placeholder="—" value="${gymData[`s${ei}`]||''}" onchange="saveGym(${i},${ei},'s',this.value)" min="0">
+          <input class="sex-input" type="number" placeholder="—" value="${gymData[`r${ei}`]||''}" onchange="saveGym(${i},${ei},'r',this.value)" min="0">
+          <input class="sex-input" type="number" placeholder="—" value="${gymData[`k${ei}`]||''}" onchange="saveGym(${i},${ei},'k',this.value)" min="0">
+        </div>`).join('')}
+      </div>` : `
+      <div class="session-exs">
+        ${s.exs.map(ex=>`<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)">${ex}</div>`).join('')}
+      </div>`}
+    </div>`;
+  }).join('');
+}
+
+function setStatus(i, st) {
+  const key = `tracker-w${currentWeek}`;
+  const saved = storage.get(key) || {};
+  saved[i] = saved[i] === st ? 'pending' : st;
+  storage.set(key, saved);
+  buildTracker();
+}
+
+function saveGym(si, ei, type, val) {
+  const key = `tracker-w${currentWeek}`;
+  const saved = storage.get(key) || {};
+  if (!saved[`gym-${si}`]) saved[`gym-${si}`] = {};
+  saved[`gym-${si}`][`${type}${ei}`] = val;
+  storage.set(key, saved);
+}
+
+function changeWeek(dir) {
+  currentWeek += dir;
+  document.getElementById('week-label').textContent = `Semana ${currentWeek}`;
+  document.getElementById('phase-badge').textContent = currentWeek < 1 ? 'Semana 0 · Tests' : `Semana ${currentWeek} · ${currentWeek <= 4 ? 'Fase 1' : currentWeek <= 8 ? 'Fase 2' : 'Fase 3'}`;
+  buildTracker();
+}
+
+// ─── PROGRESS ────────────────────────────────
+const testResultFields = [
+  { key:'dl5rm', label:'Peso muerto 5RM', unit:'kg' },
+  { key:'sq5rm', label:'Sentadilla goblet 5RM', unit:'kg' },
+  { key:'ht5rm', label:'Hip thrust 5RM', unit:'kg' },
+  { key:'ohp5rm', label:'Press overhead 5RM', unit:'kg' },
+  { key:'pullups', label:'Dominadas máx', unit:'reps' },
+  { key:'pushups', label:'Push-ups máx', unit:'reps' },
+  { key:'row8rm', label:'Remo mancuerna 8RM', unit:'kg' },
+  { key:'cooper', label:'Cooper remadora', unit:'m' },
+  { key:'plank', label:'Plancha frontal', unit:'seg' }
+];
+
+const bodyFields = [
+  { key:'b-cuello', label:'Cuello', unit:'cm' },
+  { key:'b-hombros', label:'Hombros', unit:'cm' },
+  { key:'b-pecho', label:'Pecho', unit:'cm' },
+  { key:'b-cintura', label:'Cintura', unit:'cm' },
+  { key:'b-abdomen', label:'Abdomen', unit:'cm' },
+  { key:'b-cadera', label:'Cadera', unit:'cm' },
+  { key:'b-muslo', label:'Muslo', unit:'cm' },
+  { key:'b-peso', label:'Peso corporal', unit:'kg' }
+];
+
+function buildProgress() {
+  const testGrid = document.getElementById('test-results-grid');
+  const bodyGrid = document.getElementById('body-results-grid');
+  const saved = storage.get('test-results') || {};
+  const bodySaved = storage.get('body-results') || {};
+
+  testGrid.innerHTML = testResultFields.map(f => `
+    <div class="test-result-card">
+      <div class="tr-label">${f.label}</div>
+      <input class="tr-input" type="number" value="${saved[f.key]||''}" placeholder="—" onchange="saveTestResult('${f.key}',this.value)">
+      <div class="tr-date" style="margin-top:2px">${f.unit} · Sem 0</div>
+    </div>
+  `).join('');
+
+  bodyGrid.innerHTML = bodyFields.map(f => `
+    <div class="test-result-card">
+      <div class="tr-label">${f.label}</div>
+      <input class="tr-input" type="number" value="${bodySaved[f.key]||''}" placeholder="—" onchange="saveBodyResult('${f.key}',this.value)">
+      <div class="tr-date" style="margin-top:2px">${f.unit}</div>
+    </div>
+  `).join('');
+
+  buildCharts();
+}
+
+function saveTestResult(key, val) {
+  const saved = storage.get('test-results') || {};
+  saved[key] = parseFloat(val) || null;
+  storage.set('test-results', saved);
+  buildCharts();
+}
+
+function saveBodyResult(key, val) {
+  const saved = storage.get('body-results') || {};
+  saved[key] = parseFloat(val) || null;
+  storage.set('body-results', saved);
+}
+
+function buildCharts() {
+  const labels = ['Sem 0','Sem 6','Sem 12','Sem 18','Sem 24'];
+  const saved = storage.get('chart-data') || {};
+  buildBarChart('chart-deadlift', labels, saved.dl || [0,0,0,0,0], 'kg', '#534AB7');
+  buildBarChart('chart-pullups', labels, saved.pu || [10,0,0,0,0], 'reps', '#0F6E56');
+  buildBarChart('chart-cooper', labels, saved.coop || [0,0,0,0,0], 'm', '#E6A829');
+}
+
+function buildBarChart(containerId, labels, values, unit, color) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  const max = Math.max(...values, 1);
+  c.innerHTML = labels.map((l, i) => {
+    const h = Math.round((values[i]/max)*72);
+    return `<div class="bar-col">
+      <div class="bar-val">${values[i]||'—'}</div>
+      <div class="bar" style="height:${h}px;background:${i===values.filter(v=>v>0).length-1?'var(--sun)':color}"></div>
+      <div class="bar-label">${l}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── SMARTWATCH ───────────────────────────────
+const watchMetrics = [
+  { key:'hrv', icon:'💓', label:'HRV anoche', unit:'ms', good:'>50', advice: v => v>50?{cls:'good',txt:'Recuperación excelente — entrena con intensidad normal'}:v>35?{cls:'warn',txt:'Recuperación moderada — considera reducir la carga un 10–15%'}:{cls:'bad',txt:'Recuperación baja — día de movilidad o descanso activo'} },
+  { key:'battery', icon:'🔋', label:'Body Battery', unit:'/100', good:'>70', advice: v => v>70?{cls:'good',txt:'Energía alta — día ideal para fuerza o VO2 max'}:v>40?{cls:'warn',txt:'Energía moderada — entrena pero sin PR hoy'}:{cls:'bad',txt:'Energía baja — no es día para intensidad alta'} },
+  { key:'rhr', icon:'❤️', label:'FC en reposo', unit:'bpm', good:'<60', advice: v => v<60?{cls:'good',txt:'FC en reposo óptima'}:v<70?{cls:'warn',txt:'FC en reposo normal — monitorear tendencia'}:{cls:'bad',txt:'FC elevada — puede indicar fatiga o estrés acumulado'} },
+  { key:'vo2', icon:'🫁', label:'VO2 max estimado', unit:'ml/kg/min', good:'>40', advice: v => v>48?{cls:'good',txt:'Nivel bueno — en rango de surfista competitivo'}:v>40?{cls:'warn',txt:'Nivel promedio — el 15/15 lo mejorará en 6–8 semanas'}:{cls:'bad',txt:'Por desarrollar — prioridad del programa de VO2 max'} },
+  { key:'steps', icon:'👟', label:'Pasos ayer', unit:'pasos', good:'>8000', advice: v => v>10000?{cls:'good',txt:'Actividad diaria excelente'}:v>7000?{cls:'warn',txt:'Actividad diaria aceptable'}:{cls:'bad',txt:'Actividad diaria baja — aumenta el movimiento general'} },
+  { key:'sleep', icon:'😴', label:'Horas de sueño', unit:'h', good:'>7.5', advice: v => v>=7.5?{cls:'good',txt:'Sueño suficiente — recuperación óptima'}:v>=6.5?{cls:'warn',txt:'Sueño justo — trata de adelantar 30 min el horario de acostarte'}:{cls:'bad',txt:'Sueño insuficiente — variable más crítica del programa'} }
+];
+
+function buildWatchGrid() {
+  const saved = storage.get('watch-data') || {};
+  const c = document.getElementById('watch-grid');
+  c.innerHTML = watchMetrics.map(m => {
+    const val = saved[m.key] || '';
+    const adv = val ? m.advice(parseFloat(val)) : null;
+    return `
+    <div class="watch-metric">
+      <div class="wm-icon">${m.icon}</div>
+      <input class="wm-input" type="number" value="${val}" placeholder="—" onchange="saveWatch('${m.key}',this.value)">
+      <div class="wm-unit">${m.unit}</div>
+      <div class="wm-label">${m.label}</div>
+      ${adv ? `<div class="wm-status ${adv.cls}">${adv.txt}</div>` : `<div class="wm-unit" style="margin-top:4px">Bueno: ${m.good}</div>`}
+    </div>`;
+  }).join('');
+  updateHrvAdvice(saved);
+}
+
+function saveWatch(key, val) {
+  const saved = storage.get('watch-data') || {};
+  saved[key] = parseFloat(val) || null;
+  storage.set('watch-data', saved);
+  buildWatchGrid();
+}
+
+function updateHrvAdvice(saved) {
+  const hrv = saved.hrv || 0;
+  const bat = saved.battery || 0;
+  const sleep = saved.sleep || 0;
+  const adv = document.getElementById('hrv-advice');
+  if (!hrv && !bat) { adv.innerHTML = 'Ingresa tu HRV y Body Battery arriba para recibir recomendación de carga del día.'; return; }
+  const score = (hrv>50?3:hrv>35?2:1) + (bat>70?3:bat>40?2:1) + (sleep>=7.5?3:sleep>=6.5?2:1);
+  let msg, color;
+  if (score >= 8) { msg = '<strong>Día verde ✓</strong> — Todas las señales son positivas. Entrena con intensidad normal o ligeramente aumentada. Buena sesión para intentar un PR.'; color='#7FC99A'; }
+  else if (score >= 5) { msg = '<strong>Día amarillo ⚡</strong> — Recuperación moderada. Completa el entrenamiento planificado pero no fuerces más allá del RPE objetivo. Prioriza la técnica sobre el peso.'; color='var(--sun)'; }
+  else { msg = '<strong>Día rojo ⚠️</strong> — Recuperación baja. Reemplaza el entrenamiento de fuerza por movilidad o yoga. Si debes entrenar, reduce el volumen un 30% y el peso un 20%.'; color='var(--coral)'; }
+  adv.innerHTML = `<span style="color:${color}">${msg}</span>`;
+}
+
+function buildSleepBars() {
+  const saved = storage.get('sleep-data') || { deep:90, rem:80, light:120, awake:20 };
+  const total = saved.deep + saved.rem + saved.light + saved.awake;
+  const phases = [
+    { name:'Sueño profundo', key:'deep', color:'#534AB7' },
+    { name:'REM', key:'rem', color:'#0F6E56' },
+    { name:'Ligero', key:'light', color:'#1A6B8A' },
+    { name:'Despierto', key:'awake', color:'#D95B3A' }
+  ];
+  const c = document.getElementById('sleep-bars');
+  c.innerHTML = phases.map(p => `
+    <div class="sleep-row">
+      <div class="sleep-phase">${p.name}</div>
+      <div class="sleep-bar-bg">
+        <div class="sleep-bar-fill" style="width:${Math.round((saved[p.key]/total)*100)}%;background:${p.color}"></div>
+      </div>
+      <input class="sex-input" style="width:60px;font-size:11px" type="number" value="${saved[p.key]}" placeholder="min" onchange="saveSleep('${p.key}',this.value)">
+    </div>
+  `).join('');
+}
+
+function saveSleep(key, val) {
+  const saved = storage.get('sleep-data') || {};
+  saved[key] = parseInt(val) || 0;
+  storage.set('sleep-data', saved);
+  buildSleepBars();
+}
+
+// ─── NUTRICIÓN ────────────────────────────────
+function buildMacroRings() {
+  const c = document.getElementById('macro-rings');
+  const macros = [
+    { name:'Proteína', val:150, max:150, unit:'g', color:'#534AB7' },
+    { name:'Carbohidratos', val:250, max:250, unit:'g', color:'#E6A829' },
+    { name:'Grasas', val:70, max:70, unit:'g', color:'#0F6E56' },
+    { name:'Calorías', val:2200, max:2200, unit:'kcal', color:'#D95B3A' }
+  ];
+  c.innerHTML = macros.map(m => {
+    const pct = Math.min(m.val/m.max, 1);
+    const r = 28; const circ = 2*Math.PI*r;
+    const dash = pct*circ;
+    return `<div class="macro-ring">
+      <svg class="ring-svg" viewBox="0 0 70 70">
+        <circle class="ring-bg" cx="35" cy="35" r="${r}"/>
+        <circle class="ring-fill" cx="35" cy="35" r="${r}" stroke="${m.color}"
+          stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" transform="rotate(-90 35 35)"/>
+      </svg>
+      <div class="ring-val">${m.val}</div>
+      <div class="ring-label">${m.name} (${m.unit})</div>
+    </div>`;
+  }).join('');
+}
+
+function buildNutritionLog() {
+  const c = document.getElementById('nutrition-log');
+  const saved = storage.get('nutrition-today') || [
+    { name:'Desayuno', kcal:450, foods:[
+      { name:'Avena 80g + plátano', p:12, c:65, f:6 },
+      { name:'Huevos revueltos 3u', p:18, c:2, f:12 }
+    ]},
+    { name:'Almuerzo', kcal:650, foods:[
+      { name:'Arroz integral 150g', p:5, c:55, f:2 },
+      { name:'Pechuga de pollo 180g', p:45, c:0, f:4 }
+    ]},
+    { name:'Colación post-gym', kcal:300, foods:[
+      { name:'Batido proteico 30g', p:25, c:8, f:3 },
+      { name:'Fruta', p:1, c:25, f:0 }
+    ]}
+  ];
+  c.innerHTML = saved.map((meal, i) => `
+    <div class="meal-card">
+      <div class="meal-head" onclick="toggleMeal(${i})">
+        <span class="meal-name">${meal.name}</span>
+        <span class="meal-kcal">${meal.kcal} kcal</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:8px">▼</span>
+      </div>
+      <div class="meal-body" id="meal-${i}">
+        ${meal.foods.map(f=>`
+          <div class="food-row">
+            <span class="food-name">${f.name}</span>
+            <div class="food-macros">
+              <span class="food-macro">P: ${f.p}g</span>
+              <span class="food-macro">C: ${f.c}g</span>
+              <span class="food-macro">G: ${f.f}g</span>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleMeal(i) {
+  const body = document.getElementById(`meal-${i}`);
+  body.classList.toggle('open');
+}
+
+function addMeal() {
+  const name = prompt('Nombre de la comida:');
+  if (!name) return;
+  const saved = storage.get('nutrition-today') || [];
+  saved.push({ name, kcal:0, foods:[] });
+  storage.set('nutrition-today', saved);
+  buildNutritionLog();
+}
+
+function buildSupplements() {
+  const c = document.getElementById('supplement-grid');
+  const supps = [
+    { name:'Lion\'s Mane', brand:'Mycosalud', dose:'1ml tinctura', time:'Mañana en ayunas', key:'lm' },
+    { name:'Cordyceps', brand:'Mycosalud', dose:'1ml tinctura', time:'Pre-entrenamiento', key:'cord' },
+    { name:'Reishi', brand:'Mycosalud', dose:'1ml tinctura', time:'Noche', key:'rei' },
+    { name:'Creatina monohidrato', brand:'Foodtech.cl', dose:'5g', time:'Post-entrenamiento', key:'creat' }
+  ];
+  const saved = storage.get('supps-today') || {};
+  c.innerHTML = supps.map(s => `
+    <div class="supp-card">
+      <div class="supp-name">${s.name}</div>
+      <div class="supp-dose">${s.dose}</div>
+      <div class="supp-time">${s.time}</div>
+      <div class="supp-check" onclick="toggleSupp('${s.key}')">
+        <div class="check-box ${saved[s.key]?'checked'}" id="supp-${s.key}">${saved[s.key]?'✓':''}</div>
+        <span>${saved[s.key]?'Tomado':'Marcar tomado'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleSupp(key) {
+  const saved = storage.get('supps-today') || {};
+  saved[key] = !saved[key];
+  storage.set('supps-today', saved);
+  buildSupplements();
+}
+
+// ─── NAVIGATION ──────────────────────────────
+const pageMeta = {
+  dashboard: { title:'Dashboard', sub:'Vista general del programa' },
+  rutinas: { title:'Rutinas', sub:'4 rutinas del ciclo de entrenamiento' },
+  musculos: { title:'Grupos musculares', sub:'Anatomía del programa con evidencia científica' },
+  tests: { title:'Tests semana 0', sub:'Protocolo de evaluación baseline' },
+  tracker: { title:'Tracker semanal', sub:'Registro de sesiones y pesos' },
+  progreso: { title:'Progreso', sub:'Evolución de tests y medidas corporales' },
+  smartwatch: { title:'Smartwatch', sub:'Datos del Huawei Band 11 Pro' },
+  nutricion: { title:'Nutrición', sub:'Macros, comidas y suplementos diarios' }
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  document.querySelector(`[onclick="showPage('${id}')"]`).classList.add('active');
+  document.getElementById('topbar-title').textContent = pageMeta[id].title;
+  document.getElementById('topbar-sub').textContent = pageMeta[id].sub;
+  if (id === 'tracker') buildTracker();
+  if (id === 'progreso') buildProgress();
+  if (id === 'smartwatch') { buildWatchGrid(); buildSleepBars(); }
+  if (id === 'nutricion') { buildMacroRings(); buildNutritionLog(); buildSupplements(); }
+}
+
+function showRutina(id, btn) {
+  document.querySelectorAll('.rutina-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.rutina-tabs .rtab').forEach(b => b.classList.remove('active'));
+  document.getElementById(`rut-${id}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+function showMusculos(id, btn) {
+  document.querySelectorAll('#page-musculos .rutina-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-musculos .rtab').forEach(b => b.classList.remove('active'));
+  document.getElementById(`mus-${id}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+function showTests(id, btn) {
+  document.querySelectorAll('#page-tests .rutina-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-tests .rtab').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tests-${id}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── DATE ─────────────────────────────────────
+function updateDate() {
+  const now = new Date();
+  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('date-display').textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+// ─── INIT ─────────────────────────────────────
+function init() {
+  updateDate();
+  ['r1','r2','r3','r4'].forEach(r => {
+    buildExRows(`ex-${r}-warm`, exercises[r].warm);
+    buildExRows(`ex-${r}-main`, exercises[r].main);
+    buildExRows(`ex-${r}-fin`, exercises[r].fin);
+  });
+  Object.keys(musclesData).forEach(g => buildMusculos(g, musclesData[g]));
+  Object.keys(testsData).forEach(d => buildTests(d, testsData[d]));
+  buildTracker();
+}
+
+init();
+</script>
+</body>
+</html>
